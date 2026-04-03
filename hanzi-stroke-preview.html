@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>儿童汉字笔顺学习</title>
+  <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #fff8f0;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #e65c00;
+      margin-bottom: 6px;
+      letter-spacing: 2px;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+    }
+
+    /* 输入区 */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .input-row input {
+      width: 120px;
+      padding: 10px 14px;
+      font-size: 1.5rem;
+      border: 2px solid #ffa040;
+      border-radius: 12px;
+      outline: none;
+      text-align: center;
+      background: #fff;
+      color: #333;
+      transition: border-color 0.2s;
+    }
+    .input-row input:focus { border-color: #e65c00; }
+    .input-row button {
+      padding: 10px 22px;
+      background: linear-gradient(135deg, #ff7e30, #e64c00);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 1px;
+    }
+    .input-row button:hover { opacity: 0.88; }
+    .input-row button:active { transform: scale(0.96); }
+
+    /* 田字格卡片 */
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 6px 32px rgba(230,90,0,0.12);
+      padding: 30px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      min-width: 320px;
+    }
+
+    /* 田字格容器 */
+    .grid-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+    }
+
+    /* 田字格 SVG 背景 */
+    .tian-grid {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+
+    #hanzi-target {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 笔画信息 */
+    .stroke-info {
+      font-size: 1.3rem;
+      color: #e65c00;
+      font-weight: bold;
+      min-height: 2rem;
+      letter-spacing: 2px;
+    }
+
+    /* 进度条 */
+    .progress-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 280px;
+    }
+    .stroke-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: background 0.3s;
+    }
+    .stroke-dot.done { background: #e65c00; }
+    .stroke-dot.current { background: #ff9a3c; transform: scale(1.3); }
+
+    /* 控制按钮 */
+    .ctrl-row {
+      display: flex;
+      gap: 12px;
+    }
+    .ctrl-btn {
+      padding: 9px 20px;
+      border: 2px solid #ffa040;
+      background: #fff;
+      color: #e65c00;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .ctrl-btn:hover { background: #fff0e5; }
+    .ctrl-btn.primary {
+      background: linear-gradient(135deg, #ff7e30, #e64c00);
+      color: #fff;
+      border-color: transparent;
+    }
+    .ctrl-btn.primary:hover { opacity: 0.88; }
+
+    /* 字信息 */
+    .char-info {
+      text-align: center;
+      color: #555;
+      font-size: 0.9rem;
+      line-height: 1.8;
+    }
+    .char-info .pinyin {
+      font-size: 1.1rem;
+      color: #e65c00;
+      font-weight: bold;
+    }
+
+    /* 提示语 */
+    .tip {
+      color: #bbb;
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+
+    /* 语音状态 */
+    .tts-status {
+      font-size: 0.85rem;
+      color: #aaa;
+      min-height: 1.4em;
+    }
+    .tts-status.speaking { color: #e65c00; }
+
+    /* 完成动画 */
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+    .finish-pop { animation: pop 0.5s ease; }
+
+    /* 常用字选择区 */
+    .char-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: 320px;
+      margin-top: 16px;
+      padding: 12px;
+      background: #fff8f0;
+      border-radius: 12px;
+    }
+    .char-picker .char-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #ffa040;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 1.1rem;
+      color: #e65c00;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .char-picker .char-btn:hover {
+      background: #ff7e30;
+      color: #fff;
+      transform: scale(1.1);
+    }
+    .char-picker-section {
+      margin-bottom: 10px;
+    }
+    .char-picker-section-title {
+      font-size: 0.85rem;
+      color: #999;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🖌️ 汉字笔顺学堂</h1>
+<p class="subtitle">跟着笔顺，一步一步写！</p>
+
+<div class="input-row">
+  <input type="text" id="charInput" maxlength="1" placeholder="字" value="一" />
+  <button onclick="loadChar()">开始学习 ▶</button>
+</div>
+
+<div class="card">
+  <!-- 田字格 + 汉字 -->
+  <div class="grid-wrap">
+    <!-- 田字格背景 -->
+    <svg class="tian-grid" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <!-- 外框 -->
+      <rect x="1" y="1" width="278" height="278" fill="#fffdf7" stroke="#f0c070" stroke-width="2" rx="8"/>
+      <!-- 十字实线 -->
+      <line x1="140" y1="1" x2="140" y2="279" stroke="#f0c070" stroke-width="1.5"/>
+      <line x1="1" y1="140" x2="279" y2="140" stroke="#f0c070" stroke-width="1.5"/>
+      <!-- 对角虚线 -->
+      <line x1="1" y1="1" x2="279" y2="279" stroke="#f5daa0" stroke-width="1" stroke-dasharray="6,5"/>
+      <line x1="279" y1="1" x2="1" y2="279" stroke="#f5daa0" stroke-width="1" stroke-dasharray="6,5"/>
+    </svg>
+    <!-- hanzi-writer 渲染目标 -->
+    <div id="hanzi-target"></div>
+  </div>
+
+  <!-- 当前笔画提示 -->
+  <div class="stroke-info" id="strokeInfo">准备好了，点击开始！</div>
+
+  <!-- 笔画进度点 -->
+  <div class="progress-row" id="progressRow"></div>
+
+  <!-- 字的拼音/信息 -->
+  <div class="char-info" id="charInfo"></div>
+
+  <!-- TTS 状态 -->
+  <div class="tts-status" id="ttsStatus"></div>
+
+  <!-- 控制按钮 -->
+  <div class="ctrl-row">
+    <button class="ctrl-btn" onclick="replayAnim()">↺ 重播</button>
+    <button class="ctrl-btn primary" onclick="startAnim()">▶ 播放笔顺</button>
+    <button class="ctrl-btn" onclick="toggleQuiz()">✏️ 练习模式</button>
+  </div>
+
+  <p class="tip">💡 支持输入任意汉字（简体）</p>
+
+  <!-- 常用字选择区 -->
+  <div class="char-picker-section">
+    <div class="char-picker-section-title">📚 常用字库（点击选择）</div>
+    <div class="char-picker" id="charPicker"></div>
+  </div>
+</div>
+</div>
+
+<script>
+// ============ 笔画名称映射 ============
+const STROKE_NAMES = {
+  "横":    ["h","heng","㇐"],
+  "竖":    ["s","shu","㇑"],
+  "撇":    ["p","pie","㇒"],
+  "捺":    ["n","na","㇏"],
+  "折":    ["z","zhe","㇜","㇗","㇙","㇚","㇛","㇞","㇟","㇠","㇡"],
+  "点":    ["d","dian","㇔","㇒"],
+  "钩":    ["g","gou"],
+  "提":    ["t","ti","㇀"],
+};
+
+// hanzi-writer 的 strokeMedialAxis 类型 → 中文名
+// 直接用官方 medial axis 字母映射
+const MEDIAL_TO_NAME = {
+  "h":  "横",
+  "s":  "竖",
+  "p":  "撇",
+  "n":  "捺",
+  "z":  "折",
+  "d":  "点",
+  "g":  "钩",
+  "t":  "提",
+  "hg": "横钩",
+  "hs": "横折",
+  "hz": "横折",
+  "sg": "竖钩",
+  "sp": "竖撇",
+  "sz": "竖折",
+  "pd": "撇点",
+  "pn": "撇捺",
+  "hn": "横捺",
+  "hzg":"横折钩",
+  "hzw":"横折弯",
+  "hpd":"横撇点",
+  "szg":"竖折钩",
+};
+
+// 常见汉字拼音表（示例，实际可扩展或接 API）
+const PINYIN_MAP = {
+  "一":"yī","二":"èr","三":"sān","四":"sì","五":"wǔ",
+  "六":"liù","七":"qī","八":"bā","九":"jiǔ","十":"shí",
+  "人":"rén","口":"kǒu","手":"shǒu","目":"mù","耳":"ěr",
+  "心":"xīn","水":"shuǐ","火":"huǒ","木":"mù","土":"tǔ",
+  "山":"shān","日":"rì","月":"yuè","天":"tiān","地":"dì",
+  "大":"dà","小":"xiǎo","上":"shàng","下":"xià","中":"zhōng",
+  "好":"hǎo","学":"xué","字":"zì","写":"xiě","笔":"bǐ",
+  "画":"huà","顺":"shùn","练":"liàn","习":"xí","看":"kàn",
+};
+
+// 正确的笔画表（持续扩充）
+const STROKE_TABLE = {
+  "一": ["横"],
+  "二": ["横","横"],
+  "三": ["横","横","横"],
+  "四": ["竖","横折","撇","竖弯","横"],
+  "五": ["横","竖","横折","横"],
+  "六": ["点","横","撇","点"],
+  "七": ["横","竖弯钩"],
+  "八": ["撇","捺"],
+  "九": ["撇","横折弯钩"],
+  "十": ["横","竖"],
+  "人": ["撇","捺"],
+  "口": ["竖","横折","横"],
+  "大": ["横","撇","捺"],
+  "小": ["竖钩","点","点"],
+  "山": ["竖","竖折","竖"],
+  "日": ["竖","横折","横","横"],
+  "月": ["撇","横折钩","横","横"],
+  "木": ["横","竖","撇","捺"],
+  "火": ["点","撇","撇","捺"],
+  "水": ["竖钩","横撇","撇","捺"],
+  "手": ["撇","横","横","竖钩"],
+  "目": ["竖","横折","横","横","横"],
+  "田": ["竖","横折","横","竖","横"],
+  "力": ["横折钩","撇"],
+  "刀": ["横折钩","撇"],
+  "工": ["横","竖","横"],
+  "土": ["横","竖","横"],
+  "士": ["横","竖","横"],
+  "千": ["撇","横","竖"],
+  "干": ["横","横","竖"],
+  "王": ["横","横","竖","横"],
+  "中": ["竖","横折","横","竖"],
+  "上": ["竖","横","横"],
+  "下": ["横","竖","点"],
+};
+
+// ============ 状态 ============
+let writer = null;
+let currentChar = "一";
+let strokeNames = [];
+let strokeCount = 0;
+let currentStroke = -1;
+let isQuizMode = false;
+
+// ============ TTS ============
+function speak(text, onEnd) {
+  const sts = document.getElementById("ttsStatus");
+  if (!window.speechSynthesis) {
+    sts.textContent = "（浏览器不支持语音）";
+    if (onEnd) onEnd();
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = "zh-CN";
+  utt.rate = 0.9;
+  utt.pitch = 1.1;
+  sts.textContent = "🔊 " + text;
+  sts.className = "tts-status speaking";
+  utt.onend = () => {
+    sts.className = "tts-status";
+    sts.textContent = "";
+    if (onEnd) onEnd();
+  };
+  utt.onerror = () => {
+    sts.className = "tts-status";
+    if (onEnd) onEnd();
+  };
+  window.speechSynthesis.speak(utt);
+}
+
+// ============ 获取笔画名（真实数据） ============
+function getStrokeName(strokeData) {
+  // hanzi-writer 的 strokeMedialAxis 是类似 "h","s","p","n" 的字符串
+  if (!strokeData) return "笔画";
+  const m = strokeData.strokeMedialAxis || "";
+  // 优先匹配复合笔画
+  return MEDIAL_TO_NAME[m.slice(0,3)]
+      || MEDIAL_TO_NAME[m.slice(0,2)]
+      || MEDIAL_TO_NAME[m.slice(0,1)]
+      || "笔画";
+}
+
+// ============ 构建进度点 ============
+function buildDots(count) {
+  const row = document.getElementById("progressRow");
+  row.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement("div");
+    d.className = "stroke-dot";
+    d.id = "dot-" + i;
+    row.appendChild(d);
+  }
+}
+
+function setDot(idx, state) {
+  const d = document.getElementById("dot-" + idx);
+  if (!d) return;
+  d.className = "stroke-dot " + (state || "");
+}
+
+// ============ 加载汉字 ============
+function loadChar() {
+  const input = document.getElementById("charInput").value.trim();
+  if (!input || input.length < 1) return;
+  const ch = input[0];
+  currentChar = ch;
+  currentStroke = -1;
+  isQuizMode = false;
+  strokeNames = [];
+  document.getElementById("strokeInfo").textContent = "加载中...";
+  document.getElementById("progressRow").innerHTML = "";
+  document.getElementById("ttsStatus").textContent = "";
+
+  // 字信息
+  const pinyin = PINYIN_MAP[ch] || "（拼音暂无）";
+  document.getElementById("charInfo").innerHTML =
+    `<span class="pinyin">${pinyin}</span><br/>共 ? 画`;
+
+  // 清空旧 writer
+  const target = document.getElementById("hanzi-target");
+  target.innerHTML = "";
+
+  // 创建 writer
+  try {
+    writer = HanziWriter.create("hanzi-target", ch, {
+      width: 280,
+      height: 280,
+      padding: 16,
+      showOutline: true,
+      outlineColor: "#e8c99a",
+      strokeColor: "#c83200",
+      strokeAnimationSpeed: 0.9,
+      delayBetweenStrokes: 400,
+      strokeFadeDuration: 400,
+      radicalColor: "#ff6500",
+      onLoadCharDataSuccess: (data) => {
+        strokeCount = data.strokes.length;
+        buildDots(strokeCount);
+        // 解析笔画名（优先使用 STROKE_TABLE，否则用 inferStrokeName）
+        strokeNames = data.strokes.map((stroke, i) => {
+          if (STROKE_TABLE[ch] && STROKE_TABLE[ch][i]) {
+            return STROKE_TABLE[ch][i];
+          }
+          return inferStrokeName(stroke, data.medians[i]);
+        });
+        const pinyin = PINYIN_MAP[ch] || "（拼音暂无）";
+        document.getElementById("charInfo").innerHTML =
+          `<span class="pinyin">${pinyin}</span><br/>共 ${strokeCount} 画`;
+        document.getElementById("strokeInfo").textContent = "点击【播放笔顺】开始！";
+      },
+      onLoadCharDataError: (err) => {
+        document.getElementById("strokeInfo").textContent = "❌ 暂无该字数据，请换一个字";
+      }
+    });
+  } catch(e) {
+    document.getElementById("strokeInfo").textContent = "❌ 加载失败：" + e.message;
+  }
+}
+
+// ============ 根据路径几何推断笔画类型（简化但相对准确） ============
+function inferStrokeName(strokePath, median) {
+  // 为了简化且保证相对准确性，我们使用 hanzi-writer 的内置逻辑
+  // hanzi-writer 会自动识别笔画类型并赋给 strokeMedialAxis
+  // 但我们这里无法直接访问，所以改用方向推断+已知笔画表
+
+  if (!median || median.length < 2) return "笔画";
+
+  const start = median[0];
+  const end = median[median.length - 1];
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist < 2) return "点"; // 距离很短可能是点
+
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  let deg = angle;
+  if (deg < 0) deg += 360;
+
+  // 检查转折
+  let hasTurn = false;
+  for (let i = 2; i < median.length; i++) {
+    const p1 = median[i - 2];
+    const p2 = median[i - 1];
+    const p3 = median[i];
+    const a1 = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180 / Math.PI;
+    const a2 = Math.atan2(p3[1] - p2[1], p3[0] - p2[0]) * 180 / Math.PI;
+    let diff = Math.abs(a2 - a1);
+    if (diff > 180) diff = 360 - diff;
+    if (diff > 20) {
+      hasTurn = true;
+      break;
+    }
+  }
+
+  // 方向范围（度）
+  // 横：-22.5 ~ 22.5 或 157.5 ~ 202.5 或 337.5 ~ 360
+  // 竖：67.5 ~ 112.5 或 247.5 ~ 292.5
+  // 撇：112.5 ~ 157.5
+  // 捺：22.5 ~ 67.5
+  // 提：292.5 ~ 337.5
+
+  if (hasTurn) {
+    // 简单的转折判断（后续可细化）
+    if (dx > 0 && dy > 0) return "横折";
+    if (dx < 0 && dy > 0) return "横折";
+    if (Math.abs(dy) > Math.abs(dx)) return "竖钩";
+    return "折";
+  }
+
+  if (deg >= 337.5 || deg < 22.5) return "横";
+  if (deg >= 22.5 && deg < 67.5) return "捺";
+  if (deg >= 67.5 && deg < 112.5) return "竖";
+  if (deg >= 112.5 && deg < 157.5) return "撇";
+  if (deg >= 157.5 && deg < 202.5) return "横";
+  if (deg >= 202.5 && deg < 247.5) return "撇";
+  if (deg >= 247.5 && deg < 292.5) return "竖";
+  if (deg >= 292.5 && deg < 337.5) return "提";
+
+  return "笔画";
+}
+
+// ============ 根据笔画索引获取笔画名 ============
+function getStrokeNameByIndex(strokeData, index) {
+  if (index >= 0 && index < strokeNames.length) {
+    return strokeNames[index];
+  }
+  return "笔画";
+}
+
+// ============ 播放笔顺动画 ============
+function startAnim() {
+  if (!writer) { loadChar(); return; }
+  currentStroke = 0;
+  // 隐藏所有笔画，逐笔动画
+  writer.hideCharacter({ duration: 0 });
+  setTimeout(() => {
+    for (let i = 0; i < strokeCount; i++) setDot(i, "");
+    animateStroke(0);
+  }, 50);
+}
+
+function animateStroke(idx) {
+  if (idx >= strokeCount) {
+    // 全部写完，念整个字
+    const pinyin = PINYIN_MAP[currentChar] || "";
+    document.getElementById("strokeInfo").innerHTML =
+      `✅ 写完了！共 ${strokeCount} 画`;
+    document.getElementById("hanzi-target").querySelector("svg")
+      && document.getElementById("hanzi-target").classList.add("finish-pop");
+    setTimeout(() => document.getElementById("hanzi-target").classList.remove("finish-pop"), 600);
+
+    const name = getStrokeNameByIndex({}, idx - 1);
+    setTimeout(() => {
+      speak(`${currentChar}，${pinyin ? pinyin + "，" : ""}共${strokeCount}画，写完了！`);
+    }, 200);
+    return;
+  }
+
+  setDot(idx, "current");
+  const sName = getStrokeNameByIndex({}, idx);
+  document.getElementById("strokeInfo").textContent =
+    `第 ${idx + 1} 画：${sName}`;
+
+  // 先播报笔画名，播放时立即开始动画
+  speak(sName, () => {
+    // 语音播报完成后动画应该已经播放完了
+  });
+  writer.animateStroke(idx, {
+    onComplete: () => {
+      setDot(idx, "done");
+      currentStroke = idx + 1;
+      setTimeout(() => animateStroke(idx + 1), 300);
+    }
+  });
+}
+
+// ============ 重播 ============
+function replayAnim() {
+  if (!writer) return;
+  writer.hideCharacter({ duration: 300 });
+  setTimeout(() => startAnim(), 350);
+}
+
+// ============ 练习模式 ============
+function toggleQuiz() {
+  if (!writer) return;
+  isQuizMode = !isQuizMode;
+  if (isQuizMode) {
+    document.getElementById("strokeInfo").textContent = "✏️ 练习模式：用鼠标/手指描写每个笔画";
+    writer.quiz({
+      onMistake: (strokeData) => {
+        document.getElementById("strokeInfo").textContent = "❌ 画错了，再试试！";
+        speak("再试一下");
+      },
+      onCorrectStroke: (strokeData) => {
+        const idx = strokeData.strokeNum;
+        const sName = getStrokeNameByIndex({}, idx);
+        setDot(idx, "done");
+        document.getElementById("strokeInfo").textContent = `✅ 第 ${idx + 1} 画 ${sName} 正确！`;
+        speak(sName);
+      },
+      onComplete: (summaryData) => {
+        document.getElementById("strokeInfo").textContent = `🎉 写完了！共 ${strokeCount} 画，真棒！`;
+        speak(`${currentChar}，写得很棒，共${strokeCount}画！`);
+      }
+    });
+  } else {
+    document.getElementById("strokeInfo").textContent = "已退出练习模式";
+    loadChar();
+  }
+}
+
+// ============ 键盘回车触发 ============
+document.getElementById("charInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") loadChar();
+});
+
+// ============ 初始加载 ============
+window.onload = () => {
+  loadChar();
+  renderCharPicker();
+};
+
+// ============ 渲染常用字选择器 ============
+function renderCharPicker() {
+  const picker = document.getElementById("charPicker");
+  const commonChars = [
+    "一二三四五六七八九十",
+    "人口手中山水日月天",
+    "地大小上下中好学",
+    "字写笔画顺练习",
+    "木火土目耳心",
+    "田刀工力士千干",
+  ];
+  picker.innerHTML = commonChars.map(line => {
+    return Array.from(line).map(ch => {
+      const pinyin = PINYIN_MAP[ch] || "";
+      return `<div class="char-btn" onclick="selectChar('${ch}')" title="${ch} ${pinyin}">${ch}</div>`;
+    }).join("");
+  }).join("");
+}
+
+function selectChar(ch) {
+  document.getElementById("charInput").value = ch;
+  loadChar();
+}
+</script>
+</body>
+</html>

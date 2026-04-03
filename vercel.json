@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "name": "jiujiu-learn-words",
+  "builds": [
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/hanzi-stroke-preview.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
